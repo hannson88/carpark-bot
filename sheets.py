@@ -1,14 +1,13 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-CREDS = ServiceAccountCredentials.from_json_keyfile_name("/etc/secrets/credentials.json", SCOPE)
-client = gspread.authorize(CREDS)
-sheet = client.open("CarParkBot").sheet1
+# Define the scope for the Google Sheets API
+scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
+         "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
 
-def register_user(name, phone, model, plate, telegram_id):
-    sheet.append_row([name, phone, model, plate.upper(), telegram_id])
+# Authenticate and create a gspread client
+credentials = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+client = gspread.authorize(credentials)
 
-def find_users_by_plate(plates):
-    data = sheet.get_all_records()
-    return [row for row in data if row['Car Plate'].strip().upper() in plates]
+# Open the spreadsheet
+sheet = client.open('Car Park Data').sheet1  # Replace with the name of your sheet
