@@ -24,7 +24,10 @@ def webhook():
     try:
         data = request.get_json(force=True)
         update = Update.de_json(data, application.bot)
-        application.create_task(application.process_update(update))
+
+        import asyncio
+        asyncio.run(application.process_update(update))
+
         return "ok"
     except Exception as e:
         logger.error("🔥 Webhook crashed:")
