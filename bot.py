@@ -1,12 +1,26 @@
 import os
 import logging
 from flask import Flask, request
+
+print("👋 Starting bot.py...")
+
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-from config import BOT_TOKEN
-from sheets import register_user, find_users_by_plate
 
-# Create app and bot first
+print("✅ Telegram imports loaded")
+
+try:
+    from config import BOT_TOKEN
+    print(f"✅ Loaded BOT_TOKEN: {BOT_TOKEN}")
+except Exception as e:
+    print(f"❌ Failed to load BOT_TOKEN: {e}")
+
+try:
+    from sheets import register_user, find_users_by_plate
+    print("✅ Loaded sheets.py")
+except Exception as e:
+    print(f"❌ Failed to load sheets.py: {e}")
+
 application = ApplicationBuilder().token(BOT_TOKEN).build()
 app = Flask(__name__)
 pending_requests = {}
