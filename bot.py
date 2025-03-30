@@ -21,14 +21,20 @@ application = ApplicationBuilder().token(BOT_TOKEN).build()
 @app.route("/webhook", methods=["POST"])
 def webhook():
     import traceback
+    import asyncio
+
     try:
         data = request.get_json(force=True)
         update = Update.de_json(data, application.bot)
 
-        import asyncio
-        asyncio.run(application.process_update(update))
+        async def handle_update():
+            await application.initialize()
+            await application.process_update(update)
+            await application.shutdown()  # Optional but safe cleanup
 
+        asyncio.run(handle_update())
         return "ok"
+
     except Exception as e:
         logger.error("🔥 Webhook crashed:")
         logger.error(traceback.format_exc())
@@ -39,7 +45,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("👋 Welcome to EV Charging Assistant! Use /register to register your vehicle.")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📋 Commands:\n/register Name, Phone, Car Model, Car Plate\nThen just type car plate(s) to check for owners.")
+    await update.message.reply_text("📋 Commands:\\n/register Name, Phone, Car Model, Car Plate\\nThen just type car plate(s) to check for owners.")
 
 async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -49,7 +55,7 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("✅ Registration successful!")
     except Exception as e:
         logger.error(f"❌ Error in /register: {e}")
-        await update.message.reply_text("❌ Usage:\n/register Name, Phone, Car Model, Car Plate")
+        await update.message.reply_text("❌ Usage:\\n/register Name, Phone, Car Model, Car Plate")
 
 async def handle_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plates = [x.strip().upper() for x in update.message.text.split(',')]
