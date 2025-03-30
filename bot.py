@@ -41,10 +41,8 @@ def webhook():
         return "error", 500
 
 def register_user(name, phone, model, plate, user_id):
-    # Ensure plate is stored in uppercase
-    plate = plate.upper()
-    
-    # Your existing logic to save the data in Google Sheets
+    plate = plate.upper()  # Make sure the plate is stored in uppercase
+    # Save user data to the Google Sheet
     sheet.append_row([name, phone, model, plate, user_id])
     logger.info(f"✅ Registered {name} with plate {plate}")
 
@@ -67,12 +65,17 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Usage:\\n/register Name, Phone, Car Model, Car Plate")
 
 async def handle_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Convert the plate entered by the user to uppercase
+    # Convert plates to uppercase and log the plates being searched
     plates = [x.strip().upper() for x in update.message.text.split(',')]
+    logger.info(f"🚗 Searching for plates: {plates}")
+
     matches = find_users_by_plate(plates)
+    
     if not matches:
         await update.message.reply_text("❌ No matching cars found.")
+        logger.info(f"No matching plates found for: {plates}")
         return
+
     for match in matches:
         owner_id = int(match['Telegram ID'])
         await context.bot.send_message(
