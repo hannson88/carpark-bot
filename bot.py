@@ -8,7 +8,7 @@ from telegram.ext import (
 )
 from config import BOT_TOKEN
 #from sheets import register_user, find_users_by_plate
-from sheets import sheet, register_user, find_users_by_plate  # Import `sheet` and `register_user` from sheets.py
+from sheets import sheet, is_user_registered, register_user, find_users_by_plate  # Import `sheet` and `register_user` from sheets.py
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -66,6 +66,17 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Usage:\\n/register Name, Phone, Car Model, Car Plate")
 
 async def handle_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+# Check if the user is registered
+    user_id = update.effective_user.id  # Get the user ID from Telegram
+    if not is_user_registered(user_id):
+        await update.message.reply_text("❌ You need to register first. Use /register to register.")
+        return
+
+    # If the user is registered, proceed with the plate lookup
+
+
+
     # Convert plates to uppercase and log the plates being searched
     plates = [x.strip().upper() for x in update.message.text.split(',')]
     logger.info(f"🚗 Searching for plates: {plates}")
