@@ -2,8 +2,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 # Define the scope for Google Sheets API
-scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
-         "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets', "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
 SHEET_NAME = "CarParkBot"
 
 # Authenticate and create the gspread client
