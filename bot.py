@@ -30,15 +30,17 @@ logger = logging.getLogger(__name__)
 
 @app.post("/webhook")
 async def webhook():
+    import traceback
     try:
+        logger.info("📬 /webhook called")
         data = request.get_json(force=True)
-        logger.info(f"📥 Raw Telegram Update: {data}")
+        logger.info(f"📥 Payload: {data}")
         update = Update.de_json(data, application.bot)
         await application.process_update(update)
+        logger.info("✅ Update processed")
         return "ok"
     except Exception as e:
-        import traceback
-        logger.error("🔥 Webhook processing failed:")
+        logger.error("🔥 Webhook crashed:")
         logger.error(traceback.format_exc())
         return "error", 500
 
