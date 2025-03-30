@@ -40,6 +40,15 @@ def webhook():
         logger.error(traceback.format_exc())
         return "error", 500
 
+def register_user(name, phone, model, plate, user_id):
+    # Ensure plate is stored in uppercase
+    plate = plate.upper()
+    
+    # Your existing logic to save the data in Google Sheets
+    sheet.append_row([name, phone, model, plate, user_id])
+    logger.info(f"✅ Registered {name} with plate {plate}")
+
+
 # Command handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("👋 Welcome to EV Charging Assistant! Use /register to register your vehicle.")
@@ -58,6 +67,7 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Usage:\\n/register Name, Phone, Car Model, Car Plate")
 
 async def handle_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Convert the plate entered by the user to uppercase
     plates = [x.strip().upper() for x in update.message.text.split(',')]
     matches = find_users_by_plate(plates)
     if not matches:
