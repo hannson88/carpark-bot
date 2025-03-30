@@ -7,7 +7,8 @@ from telegram.ext import (
     ContextTypes, filters
 )
 from config import BOT_TOKEN
-from sheets import register_user, find_users_by_plate
+#from sheets import register_user, find_users_by_plate
+from sheets import sheet, register_user, find_users_by_plate  # Import `sheet` and `register_user` from sheets.py
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
