@@ -28,15 +28,14 @@ pending_requests = {}
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@app.post("/webhook")
-async def webhook():
+@app.route("/webhook", methods=["POST"])
+def webhook():
     import traceback
     try:
         logger.info("📬 /webhook called")
         data = request.get_json(force=True)
         logger.info(f"📥 Payload: {data}")
 
-        # Soft test — don't use Update.de_json yet
         if data.get("message", {}).get("text") == "/start":
             logger.info("🚀 Received /start!")
         else:
