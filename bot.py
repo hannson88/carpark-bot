@@ -172,5 +172,5 @@ async def handle_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Register handlers
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("help", help_command))
-application.add_handler(CommandHandler("register", register))
+#application.add_handler(CommandHandler("register", register))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_plate))
