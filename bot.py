@@ -35,9 +35,13 @@ async def webhook():
         logger.info("📬 /webhook called")
         data = request.get_json(force=True)
         logger.info(f"📥 Payload: {data}")
-        update = Update.de_json(data, application.bot)
-        await application.process_update(update)
-        logger.info("✅ Update processed")
+
+        # Soft test — don't use Update.de_json yet
+        if data.get("message", {}).get("text") == "/start":
+            logger.info("🚀 Received /start!")
+        else:
+            logger.info("ℹ️ Received something else.")
+
         return "ok"
     except Exception as e:
         logger.error("🔥 Webhook crashed:")
