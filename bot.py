@@ -1,54 +1,42 @@
 import os
 import logging
 from flask import Flask, request
-
-print("👋 Starting bot.py...")
-
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, MessageHandler,
+    ContextTypes, filters
+)
+from config import BOT_TOKEN
+from sheets import register_user, find_users_by_plate
 
-print("✅ Telegram imports loaded")
-
-try:
-    from config import BOT_TOKEN
-    print(f"✅ Loaded BOT_TOKEN: {BOT_TOKEN}")
-except Exception as e:
-    print(f"❌ Failed to load BOT_TOKEN: {e}")
-
-try:
-    from sheets import register_user, find_users_by_plate
-    print("✅ Loaded sheets.py")
-except Exception as e:
-    print(f"❌ Failed to load sheets.py: {e}")
-
-application = ApplicationBuilder().token(BOT_TOKEN).build()
-app = Flask(__name__)
-pending_requests = {}
-
+# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Initialize Flask and Telegram application
+app = Flask(__name__)
+application = ApplicationBuilder().token(BOT_TOKEN).build()
+
+# Telegram webhook endpoint
 @app.route("/webhook", methods=["POST"])
 def webhook():
     import traceback
     try:
-        logger.info("📬 /webhook called")
         data = request.get_json(force=True)
-        logger.info(f"📥 Payload: {data}")
-
-        if data.get("message", {}).get("text") == "/start":
-            logger.info("🚀 Received /start!")
-        else:
-            logger.info("ℹ️ Received something else.")
-
+        update = Update.de_json(data, application.bot)
+        application.create_task(application.process_update(update))
         return "ok"
     except Exception as e:
         logger.error("🔥 Webhook crashed:")
         logger.error(traceback.format_exc())
         return "error", 500
 
+# Command handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🚗 Welcome to the Car Park Bot!\nUse /register to register your car.")
+    await update.message.reply_text("👋 Welcome to EV Charging Assistant! Use /register to register your vehicle.")
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("📋 Commands:\n/register Name, Phone, Car Model, Car Plate\nThen just type car plate(s) to check for owners.")
 
 async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -70,11 +58,13 @@ async def handle_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         owner_id = int(match['Telegram ID'])
         await context.bot.send_message(
             chat_id=owner_id,
-            text=f"🚙 Your car **{match['Car Plate']}** is parked. Someone is looking for a lot.",
+            text=f"🔌 Your EV with plate *{match['Car Plate']}* is being sought. Someone is looking for a charger.",
             parse_mode="Markdown"
         )
     await update.message.reply_text("✅ Owners notified.")
 
+# Register handlers
 application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("help", help_command))
 application.add_handler(CommandHandler("register", register))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_plate))
