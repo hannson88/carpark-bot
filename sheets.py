@@ -17,6 +17,14 @@ client = gspread.authorize(CREDS)
 # Open the Google Sheet
 sheet = client.open(SHEET_NAME).sheet1
 
+def is_user_registered(user_id):
+    data = sheet.get_all_records()  # Fetch all rows from the Google Sheets
+    for row in data:
+        if row.get('Telegram ID') == user_id:  # Assuming 'User ID' is the column in Google Sheets
+            return True
+    return False
+
+
 def register_user(name, phone, model, plate, telegram_id):
     plate = plate.upper()  # Ensure plate is stored in uppercase
     sheet.append_row([name, phone, model, plate, telegram_id])  # Write data to Google Sheets
