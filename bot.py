@@ -1,4 +1,3 @@
-import os
 import logging
 from flask import Flask, request
 from telegram import Update
@@ -7,18 +6,18 @@ from telegram.ext import (
     ContextTypes, filters, ConversationHandler
 )
 from config import BOT_TOKEN
-from sheets import sheet, is_user_registered, register_user, find_users_by_plate  # Import necessary functions
+from sheets import register_user  # Ensure this is imported correctly
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Define states for the conversation
+NAME, PHONE, MODEL, PLATE = range(4)
+
 # Initialize Flask and Telegram application
 app = Flask(__name__)
 application = ApplicationBuilder().token(BOT_TOKEN).build()
-
-# Define states for the conversation
-NAME, PHONE, MODEL, PLATE = range(4)
 
 # Telegram webhook endpoint
 @app.route("/webhook", methods=["POST"])
@@ -29,7 +28,7 @@ def webhook():
         data = request.get_json(force=True)
         update = Update.de_json(data, application.bot)
 
-        logger.info(f"Received update: {data}")  # Add debug logging here
+        logger.info(f"Received update: {data}")  # Add debug log here
 
         async def handle_update():
             await application.initialize()
@@ -91,16 +90,14 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Received /start command")  # Debug log when /start is triggered
     await update.message.reply_text("👋 Welcome to EV Charging Assistant! Use /register to register your vehicle.")
 
-
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Received /help command")  # Debug log when /help is triggered
     try:
-        logger.info("Preparing to send /help response")  # Log just before sending
+        # Send the help message
         await update.message.reply_text("📋 Commands: \n/register Name, Phone, Car Model, Car Plate\nThen just type car plate(s) to check for owners.")
         logger.info("Sent /help response successfully.")
     except Exception as e:
         logger.error(f"Error sending /help message: {e}")
-
 
 # Main function to set up handlers and start the bot
 def main():
