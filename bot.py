@@ -21,26 +21,26 @@ NAME, PHONE, MODEL, PLATE, CHOOSING_UPDATE_VEHICLE, CHOOSING_FIELD, GET_NEW_VALU
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 Welcome to EV Charging Assistant!
+"👋 Welcome to EV Charging Assistant!"
 "
-        "Use /register to register your vehicle.
+"Use /register to register your vehicle."
 "
-        "Use /my_status to view your registered cars.
+"Use /my_status to view your registered cars."
 "
-        "Use /update to update or delete a vehicle.
+"Use /update to update or delete a vehicle."
 "
         "Use /cancel to cancel registration at any time."
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📋 Commands:
+"📋 Commands:"
 "
-        "/register – Register your vehicle
+"/register – Register your vehicle"
 "
-        "/my_status – View your registered vehicles
+"/my_status – View your registered vehicles"
 "
-        "/update – Update or delete your vehicle
+"/update – Update or delete your vehicle"
 "
         "/cancel – Cancel the registration process"
     )
