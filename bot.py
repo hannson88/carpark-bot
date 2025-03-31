@@ -29,6 +29,8 @@ def webhook():
         data = request.get_json(force=True)
         update = Update.de_json(data, application.bot)
 
+        logger.info(f"Received update: {data}")  # Add debug logging here
+
         async def handle_update():
             await application.initialize()
             await application.process_update(update)
@@ -44,6 +46,7 @@ def webhook():
 
 # Conversation flow handlers
 def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Received /register command")  # Debug log when /register is triggered
     update.message.reply_text("Welcome! Let's get you registered. What's your name?")
     return NAME
 
@@ -85,9 +88,11 @@ def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Command handlers
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Received /start command")  # Debug log when /start is triggered
     await update.message.reply_text("👋 Welcome to EV Charging Assistant! Use /register to register your vehicle.")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Received /help command")  # Debug log when /help is triggered
     await update.message.reply_text("📋 Commands: \n/register Name, Phone, Car Model, Car Plate\nThen just type car plate(s) to check for owners.")
 
 # Main function to set up handlers and start the bot
