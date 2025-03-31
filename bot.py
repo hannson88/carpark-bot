@@ -53,7 +53,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("👋 Welcome to EV Charging Assistant! \n /rUse /register to register your vehicle.")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📋 Commands: \n /register Name, Phone, Car Model, Car Plate \n Then just type car plate(s) to check for owners.")
+    await update.message.reply_text("📋 Commands: \n /register Name, Phone, Car Model, Car Plate \n \nThen just type car plate(s) to check for owners.")
 
 async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -63,14 +63,14 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("✅ Registration successful!")
     except Exception as e:
         logger.error(f"❌ Error in /register: {e}")
-        await update.message.reply_text("❌ Usage:\\n/register Name, Phone, Car Model, Car Plate")
+        await update.message.reply_text("❌ Usage: \n \n/register Name, Phone, Car Model, Car Plate")
 
 async def handle_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Check if the user is registered
     user_id = update.effective_user.id  # Get the user ID from Telegram
     if not is_user_registered(user_id):
-        await update.message.reply_text("❌ You need to register first. Use /register to register.")
+        await update.message.reply_text("❌ You need to register first. Use \n \n/register to register.")
         return
 
     # If the user is registered, proceed with the plate lookup
