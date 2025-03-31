@@ -50,10 +50,10 @@ def register_user(name, phone, model, plate, user_id):
 
 # Command handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Welcome to EV Charging Assistant! /r /rUse /register to register your vehicle.")
+    await update.message.reply_text("👋 Welcome to EV Charging Assistant! \n /rUse /register to register your vehicle.")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📋 Commands: /r /register Name, Phone, Car Model, Car Plate\ /r /rThen just type car plate(s) to check for owners.")
+    await update.message.reply_text("📋 Commands: \n /register Name, Phone, Car Model, Car Plate \n Then just type car plate(s) to check for owners.")
 
 async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
