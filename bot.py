@@ -93,7 +93,7 @@ def main():
     application.add_handler(CommandHandler('help', help_command))  # /help command
 
     # Webhook only: Use webhook and stop polling
-    application.run_webhook(listen="0.0.0.0", port=10000, url_path="webhook", webhook_url="https://your-deployment-url/webhook")
+    application.run_webhook(listen="0.0.0.0", port=10000, url_path="webhook", webhook_url="https://carpark-bot-m825.onrender.com/webhook")
 
 if __name__ == '__main__':
     main()
