@@ -87,13 +87,12 @@ def main():
         fallbacks=[CommandHandler('cancel', cancel)],  # Allow cancellation at any point
     )
 
-    # Add the conversation handler to the dispatcher
-    dispatcher = application.dispatcher
-    dispatcher.add_handler(conversation_handler)
-    dispatcher.add_handler(CommandHandler('start', start_command))  # /start command
-    dispatcher.add_handler(CommandHandler('help', help_command))  # /help command
+    # Add the conversation handler to the application
+    application.add_handler(conversation_handler)
+    application.add_handler(CommandHandler('start', start_command))  # /start command
+    application.add_handler(CommandHandler('help', help_command))  # /help command
 
-    # Use webhook for the application
+    # Webhook only: Use webhook and stop polling
     application.run_webhook(listen="0.0.0.0", port=10000, url_path="webhook", webhook_url="https://your-deployment-url/webhook")
 
 if __name__ == '__main__':
