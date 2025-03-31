@@ -11,19 +11,20 @@ from sheets import register_user, find_users_by_plate, is_user_registered
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Define states
+# Define conversation states
 NAME, PHONE, MODEL, PLATE = range(4)
 
-# Handler functions
+# Start command
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Received /start command")
-    await update.message.reply_text("\U0001F44B Welcome to EV Charging Assistant! Use /register to register your vehicle.")
+    await update.message.reply_text("👋 Welcome to EV Charging Assistant! Use /register to register your vehicle.")
 
+# Help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Received /help command")
     try:
         await update.message.reply_text(
-            "\U0001F4CB Commands:\n"
+            "📋 Commands:\n"
             "/register – Start the registration process step-by-step.\n"
             "Just type car plate(s) to check for owners."
         )
@@ -31,6 +32,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Error sending /help message: {e}")
 
+# Register flow handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Received /register command")
     await update.message.reply_text("Welcome! Let's get you registered. What's your name?")
@@ -43,7 +45,7 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['phone'] = update.message.text
-    await update.message.reply_text("Great! What's your vehicle type?")
+    await update.message.reply_text("Great! What's your car model?")
     return MODEL
 
 async def get_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -57,16 +59,15 @@ async def get_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     phone = context.user_data['phone']
     model = context.user_data['model']
     plate = context.user_data['plate']
-    telegram_id = update.effective_user.id
 
     try:
-        register_user(name, phone, model, plate, telegram_id)
+        register_user(name, phone, model, plate, update.effective_user.id)
         await update.message.reply_text(
-            f"\U0001F389 You're now registered!\n"
-            f"Name: {name}\nPhone Number: {phone}\nVehicle Type: {model}\nCar Plate: {plate}"
+            f"🎉 You're now registered!\n"
+            f"Name: {name}\nPhone: {phone}\nModel: {model}\nPlate: {plate}"
         )
     except Exception as e:
-        await update.message.reply_text("\u274C Error registering you. Please try again later.")
+        await update.message.reply_text("❌ Error registering you. Please try again later.")
         logger.error(f"Error during registration: {e}")
 
     return ConversationHandler.END
@@ -75,31 +76,37 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Registration cancelled. You can start again with /register.")
     return ConversationHandler.END
 
+# Handle car plate lookup
 async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.message.text
-    plates = [plate.strip().upper() for plate in message.split(',')]
-    logger.info(f"\U0001F697 Looking up plate(s): {', '.join(plates)}")
+    query = update.message.text.upper().split()
+    logger.info(f"🚗 Looking up plate(s): {' '.join(query)}")
 
-    for plate in plates:
-        matches = find_users_by_plate([plate])
-        if matches:
-            for match in matches:
-                owner_id = match['Telegram ID']
+    if not is_user_registered(update.effective_user.id):
+        await update.message.reply_text("❗ You need to register first using /register.")
+        return
+
+    matches = find_users_by_plate(query)
+
+    if matches:
+        for match in matches:
+            owner_id = match.get('Telegram ID')
+            if owner_id:
                 try:
                     await context.bot.send_message(
                         chat_id=owner_id,
                         text=(
-                            f"\u26A0 Someone is enquiring about your car plate: {plate}.\n"
-                            f"Please check if your vehicle is obstructing or needs attention."
+                            f"👀 Someone is looking for your vehicle!\n"
+                            f"Car Plate: {match['Car Plate']}"
                         )
                     )
-                    logger.info(f"Notification sent to owner of {plate}")
                 except Exception as e:
-                    logger.error(f"Failed to message owner of {plate}: {e}")
-        else:
-            await update.message.reply_text(f"\u274C No record found for plate: {plate}. The owner may not be registered.")
+                    logger.error(f"❌ Could not message user {owner_id}: {e}")
 
-# Main function
+        await update.message.reply_text("✅ Owner has been contacted.")
+    else:
+        await update.message.reply_text("❌ No matching car plate found or owner not registered.")
+
+# Entry point
 def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
