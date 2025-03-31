@@ -93,7 +93,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Received /help command")  # Debug log when /help is triggered
-    await update.message.reply_text("📋 Commands: \n/register Name, Phone, Car Model, Car Plate\nThen just type car plate(s) to check for owners.")
+    try:
+        # Send the help message
+        await update.message.reply_text("📋 Commands: \n/register Name, Phone, Car Model, Car Plate\nThen just type car plate(s) to check for owners.")
+        logger.info("Sent /help response successfully.")
+    except Exception as e:
+        logger.error(f"Error sending /help message: {e}")
 
 # Main function to set up handlers and start the bot
 def main():
