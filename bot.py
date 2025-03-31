@@ -1,22 +1,23 @@
+
 import logging
-from telegram import Update, ReplyKeyboardRemove
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, MessageHandler, ConversationHandler,
-    ContextTypes, filters
+    ApplicationBuilder, CommandHandler, MessageHandler,
+    ContextTypes, ConversationHandler, filters
 )
 from config import BOT_TOKEN
 from sheets import (
     register_user, is_user_registered, find_users_by_plate,
-    find_all_vehicles_by_user, update_user_info, delete_vehicle,
-    get_existing_user_info
+    find_all_vehicles_by_user, update_user_info,
+    delete_vehicle, get_existing_user_info
 )
 
 # Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Conversation states
-NAME, PHONE, MODEL, PLATE, SELECT_PLATE, UPDATE_FIELD, NEW_VALUE = range(7)
+# States
+NAME, PHONE, MODEL, PLATE, CHOOSING_UPDATE_VEHICLE, CHOOSING_FIELD, GET_NEW_VALUE = range(7)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -24,81 +25,73 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 "
         "Use /register to register your vehicle.
 "
-        "Use /my_status to view your registered vehicles.
+        "Use /my_status to view your registered cars.
 "
         "Use /update to update or delete a vehicle.
 "
-        "Just type a car plate to notify the owner.
-"
-        "Use /cancel anytime to stop the process."
+        "Use /cancel to cancel registration at any time."
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📋 Commands:
 "
-        "/register - Register your vehicle
+        "/register – Register your vehicle
 "
-        "/my_status - View your registered vehicles
+        "/my_status – View your registered vehicles
 "
-        "/update - Update or delete a vehicle
+        "/update – Update or delete your vehicle
 "
-        "/cancel - Cancel any current operation
-"
-        "To notify a car owner, just type the car plate."
+        "/cancel – Cancel the registration process"
     )
 
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🚫 Cancelled.", reply_markup=ReplyKeyboardRemove())
-    return ConversationHandler.END
-
-# Registration process
 async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if is_user_registered(user_id):
-        name, phone = get_existing_user_info(user_id)
-        if name and phone:
-            context.user_data['name'] = name
-            context.user_data['phone'] = phone
-            await update.message.reply_text("You're already registered. Just tell us your new car model:")
-            return MODEL
-    await update.message.reply_text("Let's register you. What's your name?")
-    return NAME
+    logger.info("Received /register command")
+    if is_user_registered(update.effective_user.id):
+        context.user_data["registered"] = True
+        name, phone = get_existing_user_info(update.effective_user.id)
+        context.user_data["name"] = name
+        context.user_data["phone"] = phone
+        await update.message.reply_text("You’re already registered. Let’s register a new vehicle.
+What's your car model?")
+        return MODEL
+    else:
+        context.user_data["registered"] = False
+        await update.message.reply_text("Welcome! Let's get you registered.
+What's your name?")
+        return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['name'] = update.message.text
-    await update.message.reply_text("Your phone number?")
+    context.user_data["name"] = update.message.text
+    await update.message.reply_text("Got it! What's your phone number?")
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['phone'] = update.message.text
-    await update.message.reply_text("Your car model?")
+    context.user_data["phone"] = update.message.text
+    await update.message.reply_text("Great! What's your car model?")
     return MODEL
 
 async def get_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['model'] = update.message.text
-    await update.message.reply_text("Car plate?")
+    context.user_data["model"] = update.message.text
+    await update.message.reply_text("Nice! What's your car plate?")
     return PLATE
 
 async def get_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    plate = update.message.text.strip().upper()
+    context.user_data["plate"] = update.message.text.upper()
     register_user(
-        context.user_data['name'],
-        context.user_data['phone'],
-        context.user_data['model'],
-        plate,
-        user_id
+        context.user_data["name"],
+        context.user_data["phone"],
+        context.user_data["model"],
+        context.user_data["plate"],
+        update.effective_user.id
     )
-    await update.message.reply_text(f"✅ Registered: {plate}")
+    await update.message.reply_text("✅ Vehicle registered successfully!")
     return ConversationHandler.END
 
-# View user status
 async def my_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    vehicles = find_all_vehicles_by_user(user_id)
+    vehicles = find_all_vehicles_by_user(update.effective_user.id)
     if not vehicles:
-        await update.message.reply_text("You have no registered vehicles. Use /register to get started.")
+        await update.message.reply_text("You have no registered vehicles. Use /register to add one.")
         return
     msg = "🚗 Your Registered Vehicles:
 "
@@ -107,82 +100,56 @@ async def my_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 "
     await update.message.reply_text(msg)
 
-# Plate search
-async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    plate = update.message.text.strip().upper()
-    matches = find_users_by_plate([plate])
-    if not matches:
-        await update.message.reply_text("❌ Car plate not found or not registered.")
-        return
-    for match in matches:
-        context.bot.send_message(
-            chat_id=match['Telegram ID'],
-            text=f"📢 Someone is looking for your car: {plate}"
-        )
-    await update.message.reply_text("✅ Owner has been contacted.")
-
-# Update or delete vehicle
-async def update_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    vehicles = find_all_vehicles_by_user(user_id)
+async def update_vehicle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    vehicles = find_all_vehicles_by_user(update.effective_user.id)
     if not vehicles:
-        await update.message.reply_text("You have no registered vehicles.")
+        await update.message.reply_text("No vehicles found to update. Use /register to add one.")
         return ConversationHandler.END
-    buttons = [v["Car Plate"] for v in vehicles]
+    keyboard = [[v['Car Plate']] for v in vehicles]
     context.user_data["vehicles"] = vehicles
-    await update.message.reply_text("Select plate to update or delete:
-" + "
-".join(buttons))
-    return SELECT_PLATE
-
-async def select_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    selected_plate = update.message.text.strip().upper()
-    context.user_data["selected_plate"] = selected_plate
-    await update.message.reply_text("Type the field to update (Name, Phone Number, Vehicle Type, Car Plate), or type DELETE to remove the vehicle.")
-    return UPDATE_FIELD
+    await update.message.reply_text("Select a vehicle to update or delete:",
+        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
+    return CHOOSING_UPDATE_VEHICLE
 
 async def choose_update_field(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    choice = update.message.text.strip().lower()
-    context.user_data["update_choice"] = choice
-    if choice == "delete":
-        deleted = delete_vehicle(update.effective_user.id, context.user_data["selected_plate"])
-        if deleted:
-            await update.message.reply_text("✅ Vehicle deleted.")
-        else:
-            await update.message.reply_text("❌ Could not delete.")
-        return ConversationHandler.END
-    else:
-        await update.message.reply_text(f"Enter new value for {choice}:")
-        return NEW_VALUE
+    selected_plate = update.message.text.upper()
+    context.user_data["selected_plate"] = selected_plate
+    keyboard = [["Name", "Phone Number"], ["Vehicle Type", "Car Plate"], ["Delete"]]
+    await update.message.reply_text("What would you like to update?",
+        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
+    return CHOOSING_FIELD
 
-async def update_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    field_map = {
-        "name": "Name",
-        "phone number": "Phone Number",
-        "vehicle type": "Vehicle Type",
-        "car plate": "Car Plate"
-    }
-    telegram_id = update.effective_user.id
-    plate = context.user_data["selected_plate"]
-    field = field_map.get(context.user_data["update_choice"].lower())
-    value = update.message.text.strip()
-    updated = update_user_info(telegram_id, plate, field, value)
-    if updated:
-        await update.message.reply_text(f"✅ Updated {field} to {value}")
-    else:
-        await update.message.reply_text("❌ Update failed.")
+async def handle_update_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    field = update.message.text
+    context.user_data["field"] = field
+    if field == "Delete":
+        success = delete_vehicle(update.effective_user.id, context.user_data["selected_plate"])
+        msg = "✅ Vehicle deleted." if success else "❌ Could not delete vehicle."
+        await update.message.reply_text(msg)
+        return ConversationHandler.END
+    await update.message.reply_text(f"What is the new value for {field}?")
+    return GET_NEW_VALUE
+
+async def apply_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    value = update.message.text
+    success = update_user_info(
+        update.effective_user.id,
+        context.user_data["selected_plate"],
+        context.user_data["field"],
+        value
+    )
+    msg = "✅ Update successful!" if success else "❌ Update failed."
+    await update.message.reply_text(msg)
+    return ConversationHandler.END
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("❌ Registration cancelled. You can start again with /register.")
     return ConversationHandler.END
 
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    app.add_handler(CommandHandler("start", start_command))
-    app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CommandHandler("my_status", my_status))
-    app.add_handler(CommandHandler("cancel", cancel))
-
-    # Conversation for registration
-    reg = ConversationHandler(
+    conv_handler = ConversationHandler(
         entry_points=[CommandHandler("register", register)],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
@@ -192,21 +159,22 @@ def main():
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
-    app.add_handler(reg)
 
-    # Conversation for updates
-    update_conv = ConversationHandler(
-        entry_points=[CommandHandler("update", update_command)],
+    update_handler = ConversationHandler(
+        entry_points=[CommandHandler("update", update_vehicle)],
         states={
-            SELECT_PLATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, select_plate)],
-            UPDATE_FIELD: [MessageHandler(filters.TEXT & ~filters.COMMAND, choose_update_field)],
-            NEW_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, update_value)],
+            CHOOSING_UPDATE_VEHICLE: [MessageHandler(filters.TEXT & ~filters.COMMAND, choose_update_field)],
+            CHOOSING_FIELD: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_update_choice)],
+            GET_NEW_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, apply_update)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
-    app.add_handler(update_conv)
 
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_plate_lookup))
+    app.add_handler(conv_handler)
+    app.add_handler(update_handler)
+    app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("my_status", my_status))
 
     app.run_webhook(
         listen="0.0.0.0",
