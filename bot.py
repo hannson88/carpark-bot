@@ -65,7 +65,7 @@ async def start_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("Please enter your car model:")
         return MODEL
     else:
-        await update.message.reply_text("Let's register you. What's your name?")
+        await update.message.reply_text("Let us register you. What's your name?")
         return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
