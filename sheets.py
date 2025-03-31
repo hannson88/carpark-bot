@@ -52,7 +52,7 @@ def find_all_vehicles_by_user(telegram_id):
 
 
 def update_user_info(telegram_id, car_plate, field, new_value):
-    car_plate = car_plate.upper()
+    car_plate = str(car_plate).upper()
     all_data = sheet.get_all_records()
     for i, row in enumerate(all_data, start=2):  # start=2 to account for header row
         if row.get('Telegram ID') == telegram_id and row.get('Car Plate', '').upper() == car_plate:
@@ -76,7 +76,7 @@ def update_user_info(telegram_id, car_plate, field, new_value):
 
 
 def delete_vehicle(telegram_id, car_plate):
-    car_plate = car_plate.upper()
+    car_plate = str(car_plate).upper()
     all_data = sheet.get_all_records()
     for i, row in enumerate(all_data, start=2):
         if row.get('Telegram ID') == telegram_id and row.get('Car Plate', '').upper() == car_plate:
