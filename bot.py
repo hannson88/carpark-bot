@@ -1,9 +1,8 @@
 import logging
-from flask import Flask, request
 from telegram import Update
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, MessageHandler,
-    ContextTypes, filters, ConversationHandler
+    ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes,
+    ConversationHandler, filters
 )
 from config import BOT_TOKEN
 from sheets import register_user  # Ensure this is imported correctly
@@ -15,56 +14,31 @@ logger = logging.getLogger(__name__)
 # Define states for the conversation
 NAME, PHONE, MODEL, PLATE = range(4)
 
-# Initialize Flask and Telegram application
-app = Flask(__name__)
+# Initialize the Telegram application
 application = ApplicationBuilder().token(BOT_TOKEN).build()
 
-# Telegram webhook endpoint
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    import traceback
-    import asyncio
-    try:
-        data = request.get_json(force=True)
-        update = Update.de_json(data, application.bot)
-
-        logger.info(f"Received update: {data}")  # Add debug log here
-
-        async def handle_update():
-            await application.initialize()
-            await application.process_update(update)
-            await application.shutdown()  # Optional but safe cleanup
-
-        asyncio.run(handle_update())
-        return "ok"
-
-    except Exception as e:
-        logger.error("🔥 Webhook crashed:")
-        logger.error(traceback.format_exc())
-        return "error", 500
-
 # Conversation flow handlers
-def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info("Received /register command")  # Debug log when /register is triggered
-    update.message.reply_text("Welcome! Let's get you registered. What's your name?")
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Received /register command")
+    await update.message.reply_text("Welcome! Let's get you registered. What's your name?")
     return NAME
 
-def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['name'] = update.message.text  # Store name
-    update.message.reply_text("Got it! What's your phone number?")
+    await update.message.reply_text("Got it! What's your phone number?")
     return PHONE
 
-def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['phone'] = update.message.text  # Store phone number
-    update.message.reply_text("Great! What's your car model?")
+    await update.message.reply_text("Great! What's your car model?")
     return MODEL
 
-def get_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['model'] = update.message.text  # Store car model
-    update.message.reply_text("Nice! What's your car plate?")
+    await update.message.reply_text("Nice! What's your car plate?")
     return PLATE
 
-def get_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['plate'] = update.message.text.upper()  # Store car plate in uppercase
     name = context.user_data['name']
     phone = context.user_data['phone']
@@ -74,35 +48,30 @@ def get_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Save user data to Google Sheets
     try:
         register_user(name, phone, model, plate, update.effective_user.id)
-        update.message.reply_text(f"🎉 You're now registered! Name: {name}, Phone: {phone}, Model: {model}, Plate: {plate}")
+        await update.message.reply_text(f"🎉 You're now registered! Name: {name}, Phone: {phone}, Model: {model}, Plate: {plate}")
     except Exception as e:
-        update.message.reply_text(f"❌ There was an error registering you. Please try again later.")
+        await update.message.reply_text(f"❌ There was an error registering you. Please try again later.")
         logger.error(f"Error during registration: {e}")
 
     return ConversationHandler.END  # End the conversation
 
-def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    update.message.reply_text("Registration cancelled. You can start again by typing /register.")
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Registration cancelled. You can start again by typing /register.")
     return ConversationHandler.END
 
 # Command handlers
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info("Received /start command")  # Debug log when /start is triggered
+    logger.info("Received /start command")
     await update.message.reply_text("👋 Welcome to EV Charging Assistant! Use /register to register your vehicle.")
 
-
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info("Received /help command")  # Debug log when /help is triggered
+    logger.info("Received /help command")
     try:
-        # Log before sending the message
         logger.info("Preparing to send /help response")
         await update.message.reply_text("📋 Commands: \n/register Name, Phone, Car Model, Car Plate\nThen just type car plate(s) to check for owners.")
-        
-        # Log after sending the message
         logger.info("Sent /help response successfully.")
     except Exception as e:
         logger.error(f"Error sending /help message: {e}")
-
 
 # Main function to set up handlers and start the bot
 def main():
@@ -124,7 +93,7 @@ def main():
     dispatcher.add_handler(CommandHandler('start', start_command))  # /start command
     dispatcher.add_handler(CommandHandler('help', help_command))  # /help command
 
-    # Webhook only: Use webhook and stop polling
+    # Use webhook for the application (if desired)
     application.run_webhook(listen="0.0.0.0", port=10000, url_path="webhook", webhook_url="https://your-deployment-url/webhook")
 
 if __name__ == '__main__':
