@@ -1,9 +1,8 @@
-
 import logging
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes,
-    ConversationHandler, CallbackContext, filters
+    ConversationHandler, filters
 )
 from config import BOT_TOKEN
 from sheets import (
@@ -22,31 +21,22 @@ UPDATE_SELECTION, UPDATE_FIELD, NEW_VALUE = range(4, 7)
 # Start command
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 Welcome to EV Charging Assistant!
-"
-        "Use /register to register your vehicle.
-"
-        "Use /my_status to view your vehicles.
-"
-        "Use /update to update or delete a vehicle.
-"
-        "Use /cancel to exit at any time."
+        """👋 Welcome to EV Charging Assistant!
+Use /register to register your vehicle.
+Use /my_status to view your vehicles.
+Use /update to update or delete a vehicle.
+Use /cancel to exit at any time."""
     )
 
 # Help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📋 Commands:
-"
-        "/register – Start the registration process step-by-step.
-"
-        "/my_status – View your registered vehicles.
-"
-        "/update – Modify or delete your vehicle details.
-"
-        "/cancel – Cancel the current action.
-"
-        "Just type a car plate to check for registered owners."
+        """📋 Commands:
+/register – Start the registration process step-by-step.
+/my_status – View your registered vehicles.
+/update – Modify or delete your vehicle details.
+/cancel – Cancel the current action.
+Just type a car plate to check for registered owners."""
     )
 
 # Cancel handler
@@ -65,22 +55,22 @@ async def start_registration(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("Please enter your car model:")
         return MODEL
     else:
-        await update.message.reply_text("Let us register you. What's your name?")
+        await update.message.reply_text("Let us register you. What is your name?")
         return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['name'] = update.message.text
-    await update.message.reply_text("What's your phone number?")
+    await update.message.reply_text("What is your phone number?")
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['phone'] = update.message.text
-    await update.message.reply_text("What's your car model?")
+    await update.message.reply_text("What is your car model?")
     return MODEL
 
 async def get_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['model'] = update.message.text
-    await update.message.reply_text("What's your car plate number?")
+    await update.message.reply_text("What is your car plate number?")
     return PLATE
 
 async def get_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -131,7 +121,7 @@ async def start_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     buttons = [[v['Car Plate']] for v in vehicles]
     context.user_data['vehicles'] = vehicles
     await update.message.reply_text(
-        "Which vehicle would you like to update/delete?",
+        "Which vehicle would you like to update or delete?",
         reply_markup=ReplyKeyboardMarkup(buttons, one_time_keyboard=True, resize_keyboard=True)
     )
     return UPDATE_SELECTION
@@ -140,11 +130,9 @@ async def choose_update_field(update: Update, context: ContextTypes.DEFAULT_TYPE
     selected_plate = update.message.text.upper()
     context.user_data['selected_plate'] = selected_plate
     await update.message.reply_text(
-        "Choose what you'd like to update:
-"
-        "Name, Phone Number, Vehicle Type, Car Plate
-"
-        "Or type DELETE to remove this vehicle."
+        """Choose what you would like to update:
+Name, Phone Number, Vehicle Type, Car Plate
+Or type DELETE to remove this vehicle."""
     )
     return UPDATE_FIELD
 
