@@ -1,6 +1,3 @@
-# No car plate search is being triggered in the logs, meaning no handler is firing on normal text
-# Let's fix that now by creating a proper message handler to match text messages and check for plates
-
 import logging
 from telegram import Update
 from telegram.ext import (
@@ -25,10 +22,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Received /help command")
     try:
+        logger.info("Preparing to send /help response")
         await update.message.reply_text(
             "\U0001F4CB Commands:\n"
             "/register – Start the registration process step-by-step.\n"
-            "Just type a car plate to check for owners."
+            "Just type car plate(s) to check for owners."
         )
         logger.info("Sent /help response successfully.")
     except Exception as e:
@@ -78,18 +76,29 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.strip().upper()
-    logger.info(f"\U0001F697 Looking up plate(s): {text}")
-    matches = find_users_by_plate([text])
+    text = update.message.text.upper()
+    plates = [plate.strip().upper() for plate in text.split(',') if plate.strip()]
+    logger.info(f"\U0001F697 Looking up plate(s): {', '.join(plates)}")
 
-    if matches:
-        for match in matches:
-            await update.message.reply_text(
-                f"\U0001F4DD Contact Info:\nName: {match['Name']}\nPhone: {match['Phone']}\nModel: {match['Car Model']}\nPlate: {match['Car Plate']}"
-            )
-    else:
-        await update.message.reply_text("\u2753 No owner found for that plate.")
+    if not is_user_registered(update.effective_user.id):
+        await update.message.reply_text("\u274C You must register first using /register to use this feature.")
+        return
 
+    matches = find_users_by_plate(plates)
+    if not matches:
+        await update.message.reply_text("\u26A0\uFE0F No matching car plates found.")
+        return
+
+    reply_lines = []
+    for match in matches:
+        reply_lines.append(
+            f"\U0001F4DD Contact Info:\n"
+            f"Name: {match['Name']}\n"
+            f"Phone: {match['Phone Number']}\n"
+            f"Model: {match['Vehicle Type']}\n"
+            f"Plate: {match['Car Plate']}"
+        )
+    await update.message.reply_text("\n\n".join(reply_lines))
 
 def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
