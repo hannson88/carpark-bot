@@ -110,8 +110,8 @@ def main():
     dispatcher.add_handler(CommandHandler('start', start_command))  # /start command
     dispatcher.add_handler(CommandHandler('help', help_command))  # /help command
 
-    # Start the bot
-    application.run_polling()
+    # Webhook only: Use webhook and stop polling
+    application.run_webhook(listen="0.0.0.0", port=10000, url_path="webhook", webhook_url="https://your-deployment-url/webhook")
 
 if __name__ == '__main__':
     main()
