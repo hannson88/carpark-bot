@@ -1,6 +1,10 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 # Define the scope for Google Sheets API
 SCOPE = [
     "https://spreadsheets.google.com/feeds", 
