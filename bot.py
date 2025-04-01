@@ -95,12 +95,13 @@ async def get_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         register_user(name, phone, model, plate, user_id)
+
         await update.message.reply_text(
             f"🎉 You are now registered!\n"
-            f"Name: {name}
-Phone: {phone}
-Model: {model}
-Plate: {plate}"
+            f"Name: {name}\n"
+            f"Phone: {phone}\n"
+            f"Model: {model}\n"
+            f"Plate: {plate}"
         )
     except Exception as e:
         await update.message.reply_text("❌ Error registering you. Please try again later.")
