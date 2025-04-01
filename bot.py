@@ -155,7 +155,7 @@ async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE
             ])
         )
 
-    await update.message.reply_text("✅ Owner has been contacted.")
+await context.bot.send_message(
     chat_id=owner_id,
     text=(
         f"🔔 Someone is looking for your car plate: {plate}.\n"
