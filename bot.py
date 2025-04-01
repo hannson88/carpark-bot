@@ -168,9 +168,7 @@ async def handle_button_press(update: Update, context: ContextTypes.DEFAULT_TYPE
         context.user_data["reply_plate"] = active_conversations[user_id]["plate"]
         await query.message.reply_text("Please type your reply:")
 
-        # 🔥 Force user into conversation state
-        context._chat_data[user_id][ConversationHandler.CONVERSATION] = REPLY_MESSAGE
-        return
+        return REPLY_MESSAGE  # ✅ Just return the state here
 
     elif query.data == "end_convo":
         if user_id in active_conversations:
@@ -188,6 +186,7 @@ async def handle_button_press(update: Update, context: ContextTypes.DEFAULT_TYPE
             await query.edit_message_text("❌ You ended the conversation.")
         else:
             await query.edit_message_text("❌ No active conversation to end.")
+
 
 # Reply
 async def start_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
