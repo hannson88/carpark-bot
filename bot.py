@@ -319,13 +319,16 @@ def main():
         fallbacks=[CommandHandler("cancel", cancel)],
     )
 
-    reply_conv = ConversationHandler(
-        entry_points=[CommandHandler("reply", start_reply)],
-        states={
-            REPLY_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, send_reply)],
-        },
-        fallbacks=[CommandHandler("cancel", cancel)],
-    )
+reply_conv = ConversationHandler(
+    entry_points=[
+        CommandHandler("reply", start_reply),
+        CallbackQueryHandler(handle_button_press, pattern="^(start_reply|end_convo)$"),
+    ],
+    states={
+        REPLY_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, send_reply)],
+    },
+    fallbacks=[CommandHandler("cancel", cancel)],
+)
 
     app.add_handler(reg_conv)
     app.add_handler(update_conv)
