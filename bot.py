@@ -137,7 +137,7 @@ async def choose_update_field(update: Update, context: ContextTypes.DEFAULT_TYPE
     return UPDATE_FIELD
 
 async def receive_update_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    field = update.message.text
+    field = update.message.text.strip().title()
     telegram_id = update.effective_user.id
     plate = context.user_data['selected_plate']
     if field.upper() == "DELETE":
