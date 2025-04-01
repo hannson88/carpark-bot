@@ -158,18 +158,19 @@ async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE
     # ✅ Moved outside the loop
     await update.message.reply_text("✅ Owner has been contacted.")
 
-# Buttons for reply
 async def handle_button_press(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user_id = query.from_user.id
 
     if query.data == "start_reply":
-        # Inject into reply_conv manually
         context.user_data["reply_target"] = active_conversations[user_id]["peer_id"]
         context.user_data["reply_plate"] = active_conversations[user_id]["plate"]
         await query.message.reply_text("Please type your reply:")
-        return REPLY_MESSAGE  # 🔑 Return state here!
+
+        # 🔥 Force user into conversation state
+        context._chat_data[user_id][ConversationHandler.CONVERSATION] = REPLY_MESSAGE
+        return
 
     elif query.data == "end_convo":
         if user_id in active_conversations:
@@ -187,8 +188,6 @@ async def handle_button_press(update: Update, context: ContextTypes.DEFAULT_TYPE
             await query.edit_message_text("❌ You ended the conversation.")
         else:
             await query.edit_message_text("❌ No active conversation to end.")
-
-
 
 # Reply
 async def start_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
