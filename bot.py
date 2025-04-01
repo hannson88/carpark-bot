@@ -165,7 +165,11 @@ async def handle_button_press(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_id = query.from_user.id
 
     if query.data == "start_reply":
-        return await start_reply(update, context)
+        # Inject into reply_conv manually
+        context.user_data["reply_target"] = active_conversations[user_id]["peer_id"]
+        context.user_data["reply_plate"] = active_conversations[user_id]["plate"]
+        await query.message.reply_text("Please type your reply:")
+        return REPLY_MESSAGE  # 🔑 Return state here!
 
     elif query.data == "end_convo":
         if user_id in active_conversations:
