@@ -141,7 +141,21 @@ async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE
             "start_time": update.message.date.timestamp()
         }
 
-await context.bot.send_message(
+        await context.bot.send_message(
+            chat_id=owner_id,
+            text=(
+                f"🔔 Someone is looking for your car plate: {plate}.\n"
+                f"You can reply using the button below."
+            ),
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("Reply", callback_data="start_reply"),
+                    InlineKeyboardButton("End Conversation", callback_data="end_convo")
+                ]
+            ])
+        )
+
+    await update.message.reply_text("✅ Owner has been contacted.")
     chat_id=owner_id,
     text=(
         f"🔔 Someone is looking for your car plate: {plate}.\n"
