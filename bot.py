@@ -164,11 +164,14 @@ async def handle_button_press(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_id = query.from_user.id
 
     if query.data == "start_reply":
+        # Set up conversation state properly
         context.user_data["reply_target"] = active_conversations[user_id]["peer_id"]
         context.user_data["reply_plate"] = active_conversations[user_id]["plate"]
-        await query.message.reply_text("Please type your reply:")
 
-        return REPLY_MESSAGE  # ✅ Just return the state here
+        await query.message.reply_text("Please type your reply:")
+        
+        # ⬇️ Return the correct conversation state
+        return REPLY_MESSAGE
 
     elif query.data == "end_convo":
         if user_id in active_conversations:
@@ -186,6 +189,9 @@ async def handle_button_press(update: Update, context: ContextTypes.DEFAULT_TYPE
             await query.edit_message_text("❌ You ended the conversation.")
         else:
             await query.edit_message_text("❌ No active conversation to end.")
+
+    return ConversationHandler.END
+
 
 
 # Reply
