@@ -121,11 +121,19 @@ async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE
     requester_id = update.effective_user.id
     for owner in matches:
         owner_id = owner["Telegram ID"]
+
+        # Save conversation for both sides
         active_conversations[owner_id] = {
             "peer_id": requester_id,
             "plate": plate,
             "start_time": update.message.date.timestamp()
         }
+        active_conversations[requester_id] = {
+            "peer_id": owner_id,
+            "plate": plate,
+            "start_time": update.message.date.timestamp()
+        }
+        
         await context.bot.send_message(
             chat_id=owner_id,
             text=(
