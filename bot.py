@@ -26,23 +26,23 @@ UPDATE_SELECTION, UPDATE_FIELD, NEW_VALUE = range(4, 7)
 # Start command
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 Welcome to EV Charging Assistant!"\n
-        "Use /register to register your vehicle."\n
-        "Use /my_status to view your vehicles."\n
-        "Use /update to update or delete a vehicle."\n
-        "Use /cancel to exit at any time."
-    )
+        "👋 Welcome to EV Charging Assistant!\n"
+        "Use /register to register your vehicle.\n"
+        "Use /my_status to view your vehicles.\n"
+        "Use /update to update or delete a vehicle.\n"
+        "Use /cancel to exit at any time.
+"    )
 
 # Help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📋 Commands:"\n
-        "/register – Start the registration process step-by-step."\n
-        "/my_status – View your registered vehicles."\n
+        "/register – Start the registration process step-by-step.\n"
+        "/my_status – View your registered vehicles.\n"
         "/update – Modify or delete your vehicle details.\n"
-        "/cancel – Cancel the current action."\n
-        "Just type a car plate to check for registered owners."
-    )
+        "/cancel – Cancel the current action.\n"
+        "Just type a car plate to check for registered owners.
+"    )
 
 # Cancel handler
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -93,11 +93,11 @@ async def my_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No vehicles registered. Use /register to add one.")
         return
     msg = "🚗 Your registered vehicles:
-"
-    for v in vehicles:
+
+"    for v in vehicles:
         msg += f"- {v['Car Plate']} ({v['Vehicle Type']})
-"
-    await update.message.reply_text(msg)
+
+"    await update.message.reply_text(msg)
 
 # Plate lookup
 async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -111,8 +111,8 @@ async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE
             user_id = m["Telegram ID"]
             await context.bot.send_message(
                 chat_id=user_id,
-                text=f"🔔 Someone is looking for your car plate: {m['Car Plate']}"
-            )
+                text=f"🔔 Someone is looking for your car plate: {m['Car Plate']}
+"            )
         await update.message.reply_text("✅ Owner has been contacted.")
     else:
         await update.message.reply_text("❌ No matching car plate found or owner not registered.")
@@ -136,11 +136,11 @@ async def choose_update_field(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data['selected_plate'] = selected_plate
     await update.message.reply_text(
         "Choose what you would like to update:
-"
-        "Name, Phone Number, Vehicle Type, Car Plate
-"
-        "Or type DELETE to remove this vehicle."
-    )
+
+"        "Name, Phone Number, Vehicle Type, Car Plate
+
+"        "Or type DELETE to remove this vehicle.
+"    )
     return UPDATE_FIELD
 
 async def receive_update_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -204,8 +204,8 @@ def main():
         listen="0.0.0.0",
         port=10000,
         url_path="webhook",
-        webhook_url="https://carpark-bot-m825.onrender.com/webhook"
-    )
+        webhook_url="https://carpark-bot-m825.onrender.com/webhook
+"    )
 
 if __name__ == '__main__':
     main()
