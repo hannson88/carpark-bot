@@ -90,10 +90,14 @@ async def my_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not vehicles:
         await update.message.reply_text("No vehicles registered. Use /register to add one.")
         return
+
     msg = "🚗 Your registered vehicles:\n"
     for v in vehicles:
-        msg += f"- {v['Car Plate']} ({v['Vehicle Type']})"
-        await update.message.reply_text(msg)
+        msg += f"- {v['Car Plate']} ({v['Vehicle Type']})\n"
+
+    await update.message.reply_text(msg)
+
+
 
 # Plate lookup
 async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE):
