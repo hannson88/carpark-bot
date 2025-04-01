@@ -35,7 +35,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📋 Commands:"\n
+        "📋 Commands:\n"
         "/register – Start the registration process step-by-step.\n"
         "/my_status – View your registered vehicles.\n"
         "/update – Modify or delete your vehicle details.\n"
