@@ -158,20 +158,22 @@ async def start_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender = update.effective_user.id
     target = context.user_data.get("reply_target")
-    plate = context.user_data.get("reply_plate")
 
     if not target:
         await update.message.reply_text("Reply session expired or invalid.")
         return ConversationHandler.END
 
-    # Determine sender role (owner or requester)
+    # Get the conversation and the sender's plate
     conversation = active_conversations.get(sender)
+    sender_plate = conversation.get("plate") if conversation else "unknown"
+
+    # Determine role
     sender_role = "Requester" if conversation and conversation.get("peer_id") == target else "Owner"
 
     await context.bot.send_message(
         chat_id=target,
         text=(
-            f"💬 Reply from {sender_role} of plate {plate}:\n"
+            f"💬 Reply from {sender_role} of plate {sender_plate}:\n"
             f"{update.message.text}\n\n"
             f"You can reply using /reply"
         )
