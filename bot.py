@@ -168,6 +168,7 @@ async def send_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=target,
         text=(
             f"💬 Reply from owner of plate {plate}:\n"
+            f"You can reply using /reply"
             f"{update.message.text}"
         )
     )
