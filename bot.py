@@ -114,33 +114,40 @@ async def my_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plate = update.message.text.strip().upper()
     matches = find_users_by_plate([plate])
+
     if not matches:
         await update.message.reply_text("❌ No matching car plate found or owner not registered.")
         return
 
     requester_id = update.effective_user.id
+    requester_vehicles = find_all_vehicles_by_user(requester_id)
+    requester_plate = requester_vehicles[0]["Car Plate"] if requester_vehicles else "Unknown"
+
     for owner in matches:
         owner_id = owner["Telegram ID"]
+        owner_plate = owner["Car Plate"]
 
-        # Save conversation for both sides
+        # Save conversations separately with each person's own plate
         active_conversations[owner_id] = {
             "peer_id": requester_id,
-            "plate": plate,
+            "plate": owner_plate,
             "start_time": update.message.date.timestamp()
         }
+
         active_conversations[requester_id] = {
             "peer_id": owner_id,
-            "plate": plate,
+            "plate": requester_plate,
             "start_time": update.message.date.timestamp()
         }
-        
+
         await context.bot.send_message(
             chat_id=owner_id,
             text=(
-                f"🔔 Someone is looking for your car plate: {plate}.\n"
+                f"🔔 Someone is looking for your car plate: {owner_plate}.\n"
                 f"You can reply using /reply"
             )
         )
+
     await update.message.reply_text("✅ Owner has been contacted.")
 
 # Reply
