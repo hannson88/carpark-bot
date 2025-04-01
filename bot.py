@@ -154,7 +154,9 @@ async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE
                 ]
             ])
         )
-        await update.message.reply_text("✅ Owner has been contacted.")
+
+    # ✅ Moved outside the loop
+    await update.message.reply_text("✅ Owner has been contacted.")
 
 # Buttons for reply
 async def handle_button_press(update: Update, context: ContextTypes.DEFAULT_TYPE):
