@@ -126,14 +126,23 @@ async def start_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return UPDATE_SELECTION
 
+from telegram import ReplyKeyboardMarkup
+
 async def choose_update_field(update: Update, context: ContextTypes.DEFAULT_TYPE):
     selected_plate = update.message.text.upper()
     context.user_data['selected_plate'] = selected_plate
+
+    keyboard = [
+        ["Name", "Phone Number"],
+        ["Vehicle Type", "Car Plate"],
+        ["DELETE"]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+
     await update.message.reply_text(
-        "Choose what you would like to update:\n"
-        "Name, Phone Number, Vehicle Type, Car Plate\n"
-        "Or type DELETE to remove this vehicle."
-        )
+        "Please choose what you would like to update or type DELETE to remove this vehicle.",
+        reply_markup=reply_markup
+    )
     return UPDATE_FIELD
 
 async def receive_update_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
