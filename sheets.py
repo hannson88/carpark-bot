@@ -1,4 +1,3 @@
-
 import logging
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -8,9 +7,9 @@ logger = logging.getLogger(__name__)
 
 # Define the scope for Google Sheets API
 SCOPE = [
-    "https://spreadsheets.google.com/feeds", 
+    "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive.file", 
+    "https://www.googleapis.com/auth/drive.file",
     "https://www.googleapis.com/auth/drive"
 ]
 SHEET_NAME = "CarParkBot"
@@ -25,16 +24,16 @@ sheet = client.open(SHEET_NAME).sheet1
 def is_user_registered(user_id):
     data = sheet.get_all_records()
     for row in data:
-        if str(row.get("Telegram ID")) == str(user_id):
+        if str(row.get("Telegram ID")) == str(user_id) and not str(row.get("Car Plate", "")).endswith("_delete"):
             return True
     return False
 
-def get_user_info(user_id):
+def get_existing_user_info(user_id):
     data = sheet.get_all_records()
     for row in data:
-        if str(row.get("Telegram ID")) == str(user_id):
-            return row
-    return None
+        if str(row.get("Telegram ID")) == str(user_id) and not str(row.get("Car Plate", "")).endswith("_delete"):
+            return row.get("Name"), row.get("Phone Number")
+    return None, None
 
 def register_user(name, phone, model, plate, telegram_id):
     plate = plate.upper()
@@ -46,7 +45,7 @@ def find_users_by_plate(plates):
     data = sheet.get_all_records()
     for row in data:
         car_plate = row.get("Car Plate", "").strip().upper()
-        if car_plate and car_plate in plates:
+        if car_plate and car_plate in plates and not car_plate.endswith("_delete"):
             results.append(row)
     return results
 
@@ -54,6 +53,39 @@ def find_all_vehicles_by_user(user_id):
     results = []
     data = sheet.get_all_records()
     for row in data:
-        if str(row.get("Telegram ID")) == str(user_id):
+        if str(row.get("Telegram ID")) == str(user_id) and not str(row.get("Car Plate", "")).endswith("_delete"):
             results.append(row)
     return results
+
+def update_user_info(telegram_id, car_plate, field, new_value):
+    car_plate = car_plate.upper()
+    all_data = sheet.get_all_records()
+    for i, row in enumerate(all_data, start=2):  # account for header
+        if str(row.get('Telegram ID')) == str(telegram_id) and row.get('Car Plate', '').upper() == car_plate:
+            col_index = {
+                'Name': 1,
+                'Phone Number': 2,
+                'Vehicle Type': 3,
+                'Car Plate': 4
+            }.get(field)
+            if col_index:
+                sheet.update_cell(i, col_index, new_value)
+                logger.info(f"✅ Updated {field} for {car_plate} to {new_value}")
+
+                if field in ["Name", "Phone Number"]:
+                    for j, r in enumerate(all_data, start=2):
+                        if str(r.get('Telegram ID')) == str(telegram_id):
+                            sheet.update_cell(j, col_index, new_value)
+                return True
+    return False
+
+def delete_vehicle(telegram_id, car_plate):
+    car_plate = car_plate.upper()
+    all_data = sheet.get_all_records()
+    for i, row in enumerate(all_data, start=2):
+        if str(row.get('Telegram ID')) == str(telegram_id) and row.get('Car Plate', '').upper() == car_plate:
+            sheet.update_cell(i, 4, car_plate + "_delete")
+            sheet.update_cell(i, 5, str(telegram_id) + "_delete")
+            logger.info(f"❌ Marked {car_plate} as deleted")
+            return True
+    return False
