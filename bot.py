@@ -1,8 +1,9 @@
 import logging
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes,
-    ConversationHandler, filters
+    ConversationHandler, filters, CallbackQueryHandler
 )
 from config import BOT_TOKEN
 from sheets import (
@@ -140,52 +141,96 @@ async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE
             "start_time": update.message.date.timestamp()
         }
 
-        await context.bot.send_message(
-            chat_id=owner_id,
-            text=(
-                f"🔔 Someone is looking for your car plate: {owner_plate}.\n"
-                f"You can reply using /reply"
-            )
-        )
+await context.bot.send_message(
+    chat_id=owner_id,
+    text=(
+        f"🔔 Someone is looking for your car plate: {plate}.\n"
+        f"You can reply using the button below."
+    ),
+    reply_markup=InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("Reply", callback_data="start_reply"),
+            InlineKeyboardButton("End Conversation", callback_data="end_convo")
+        ]
+    ])
+)
 
-    await update.message.reply_text("✅ Owner has been contacted.")
+await update.message.reply_text("✅ Owner has been contacted.")
+
+# Buttons for reply
+async def handle_button_press(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = query.from_user.id
+
+    if query.data == "start_reply":
+        return await start_reply(update, context)
+
+    elif query.data == "end_convo":
+        if user_id in active_conversations:
+            peer_id = active_conversations[user_id]["peer_id"]
+            plate = active_conversations[user_id]["plate"]
+
+            del active_conversations[user_id]
+            if peer_id in active_conversations:
+                del active_conversations[peer_id]
+
+            await context.bot.send_message(
+                chat_id=peer_id,
+                text=f"❌ Conversation ended by the other party (plate: {plate})."
+            )
+            await query.edit_message_text("❌ You ended the conversation.")
+        else:
+            await query.edit_message_text("❌ No active conversation to end.")
+
+
 
 # Reply
 async def start_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
+    if update.message:
+        user_id = update.effective_user.id
+    else:
+        user_id = update.callback_query.from_user.id
+
     if user_id not in active_conversations:
-        await update.message.reply_text("You have no one to reply to right now.")
+        if update.callback_query:
+            await update.callback_query.message.reply_text("You have no one to reply to right now.")
+        else:
+            await update.message.reply_text("You have no one to reply to right now.")
         return ConversationHandler.END
 
     context.user_data["reply_target"] = active_conversations[user_id]["peer_id"]
     context.user_data["reply_plate"] = active_conversations[user_id]["plate"]
-    await update.message.reply_text("Please type your reply:")
+
+    if update.callback_query:
+        await update.callback_query.message.reply_text("Please type your reply:")
+    else:
+        await update.message.reply_text("Please type your reply:")
+
     return REPLY_MESSAGE
 
+# Send the actual reply
 async def send_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender = update.effective_user.id
     target = context.user_data.get("reply_target")
+    plate = context.user_data.get("reply_plate")
 
     if not target:
         await update.message.reply_text("Reply session expired or invalid.")
         return ConversationHandler.END
 
-    # Get the conversation and the sender's plate
+    # Determine sender role
     conversation = active_conversations.get(sender)
-    sender_plate = conversation.get("plate") if conversation else "unknown"
-
-    # Determine role
     sender_role = "Requester" if conversation and conversation.get("peer_id") == target else "Owner"
 
     await context.bot.send_message(
         chat_id=target,
         text=(
-            f"💬 Reply from {sender_role} of plate {sender_plate}:\n"
+            f"💬 Reply from {sender_role} of plate {plate}:\n"
             f"{update.message.text}\n\n"
             f"You can reply using /reply"
         )
     )
-
     await update.message.reply_text("✅ Reply sent.")
     return ConversationHandler.END
 
@@ -282,6 +327,9 @@ def main():
     app.add_handler(CommandHandler("cancel", cancel))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_plate_lookup))
 
+    # Handle inline button presses (Reply / End Conversation)
+    app.add_handler(CallbackQueryHandler(handle_button_press))
+    
     app.run_webhook(
         listen="0.0.0.0",
         port=10000,
