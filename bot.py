@@ -1,199 +1,158 @@
 import logging
-from telegram import Update, ReplyKeyboardMarkup
+from telegram import Update
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes,
     ConversationHandler, filters
 )
 from config import BOT_TOKEN
 from sheets import (
-    register_user, is_user_registered, find_users_by_plate, find_all_vehicles_by_user,
-    update_user_info, delete_vehicle, get_existing_user_info
+    register_user,
+    find_users_by_plate,
+    is_user_registered,
+    find_all_vehicles_by_user,
+    get_user_info
 )
 
-# Logging setup
+# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# State definitions
+# Define states
 NAME, PHONE, MODEL, PLATE = range(4)
-UPDATE_SELECTION, UPDATE_FIELD, NEW_VALUE = range(4, 7)
 
-# Start command
+# Handler functions
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Received /start command")
     await update.message.reply_text(
-        """👋 Welcome to EV Charging Assistant!
-Use /register to register your vehicle.
-Use /my_status to view your vehicles.
-Use /update to update or delete a vehicle.
-Use /cancel to exit at any time."""
+        "\U0001F44B Welcome to EV Charging Assistant! Use /register to register your vehicle."
     )
 
-# Help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        """📋 Commands:
-/register – Start the registration process step-by-step.
-/my_status – View your registered vehicles.
-/update – Modify or delete your vehicle details.
-/cancel – Cancel the current action.
-Just type a car plate to check for registered owners."""
-    )
+    logger.info("Received /help command")
+    try:
+        logger.info("Preparing to send /help response")
+        await update.message.reply_text(
+            "\U0001F4CB Commands:\n"
+            "/register – Register your vehicle step-by-step.\n"
+            "/cancel – Cancel ongoing registration.\n"
+            "/my_status – View your registered vehicles.\n"
+            "Just type car plate(s) to check for owners."
+        )
+        logger.info("Sent /help response successfully.")
+    except Exception as e:
+        logger.error(f"Error sending /help message: {e}")
 
-# Cancel handler
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("❌ Action cancelled.")
-    return ConversationHandler.END
+async def my_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    records = find_all_vehicles_by_user(user_id)
+    if not records:
+        await update.message.reply_text("You are not registered yet. Use /register to register your vehicle.")
+        return
 
-# Registration flow
-async def start_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
-    telegram_id = update.effective_user.id
-    if is_user_registered(telegram_id):
-        name, phone = get_existing_user_info(telegram_id)
-        context.user_data['name'] = name
-        context.user_data['phone'] = phone
-        await update.message.reply_text("Please enter your car model:")
+    response = "\U0001F4C4 Your Registered Vehicles:\n"
+    for r in records:
+        response += f"- {r['Vehicle Type']} ({r['Car Plate']})\n"
+    await update.message.reply_text(response)
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Received /register command")
+    user_id = update.effective_user.id
+    if is_user_registered(user_id):
+        context.user_data['repeat_user'] = True
+        user_info = get_user_info(user_id)
+        context.user_data['name'] = user_info.get("Name")
+        context.user_data['phone'] = user_info.get("Phone Number")
+        await update.message.reply_text("Welcome back! Let's add another car. What's the car model?")
         return MODEL
     else:
-        await update.message.reply_text("Let us register you. What is your name?")
+        context.user_data['repeat_user'] = False
+        await update.message.reply_text("Welcome! Let's get you registered. What's your name?")
         return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['name'] = update.message.text
-    await update.message.reply_text("What is your phone number?")
+    await update.message.reply_text("Got it! What's your phone number?")
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['phone'] = update.message.text
-    await update.message.reply_text("What is your car model?")
+    await update.message.reply_text("Great! What's your car model?")
     return MODEL
 
 async def get_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['model'] = update.message.text
-    await update.message.reply_text("What is your car plate number?")
+    await update.message.reply_text("Nice! What's your car plate?")
     return PLATE
 
 async def get_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    plate = update.message.text.upper()
-    context.user_data['plate'] = plate
-    data = context.user_data
-    register_user(data['name'], data['phone'], data['model'], plate, update.effective_user.id)
-    await update.message.reply_text("✅ Registration complete!")
+    context.user_data['plate'] = update.message.text.upper()
+    plate = context.user_data['plate']
+    user_id = update.effective_user.id
+
+    name = context.user_data['name']
+    phone = context.user_data['phone']
+    model = context.user_data['model']
+
+    try:
+        register_user(name, phone, model, plate, user_id)
+        await update.message.reply_text(
+            f"\U0001F389 You're now registered!\n"
+            f"Name: {name}\nPhone: {phone}\nModel: {model}\nPlate: {plate}"
+        )
+    except Exception as e:
+        await update.message.reply_text("❌ Error registering you. Please try again later.")
+        logger.error(f"Error during registration: {e}")
+
     return ConversationHandler.END
 
-# Status command
-async def my_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    vehicles = find_all_vehicles_by_user(update.effective_user.id)
-    if not vehicles:
-        await update.message.reply_text("No vehicles registered. Use /register to add one.")
-        return
-    msg = "🚗 Your registered vehicles:
-"
-    for v in vehicles:
-        msg += f"- {v['Car Plate']} ({v['Vehicle Type']})
-"
-    await update.message.reply_text(msg)
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("❌ Registration cancelled. You can start again with /register.")
+    return ConversationHandler.END
 
-# Car plate lookup
 async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    plate = update.message.text.strip().upper()
-    if not plate:
+    user_id = update.effective_user.id
+    plate_input = update.message.text.upper()
+    logger.info(f"\U0001F697 Looking up plate(s): {plate_input}")
+
+    matches = find_users_by_plate([plate_input])
+    if not matches:
+        await update.message.reply_text("No owner found for this car plate or the owner is not registered.")
         return
-    logger.info(f"🔍 Plate lookup: {plate}")
-    matches = find_users_by_plate([plate])
-    if matches:
-        for m in matches:
-            user_id = m["Telegram ID"]
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=f"🔔 Someone is looking for your car plate: {m['Car Plate']}"
-            )
-        await update.message.reply_text("✅ Owner has been contacted.")
-    else:
-        await update.message.reply_text("❌ No matching car plate found or owner not registered.")
 
-# Update flow
-async def start_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    vehicles = find_all_vehicles_by_user(update.effective_user.id)
-    if not vehicles:
-        await update.message.reply_text("No registered vehicles to update. Use /register to add one.")
-        return ConversationHandler.END
-    buttons = [[v['Car Plate']] for v in vehicles]
-    context.user_data['vehicles'] = vehicles
-    await update.message.reply_text(
-        "Which vehicle would you like to update or delete?",
-        reply_markup=ReplyKeyboardMarkup(buttons, one_time_keyboard=True, resize_keyboard=True)
-    )
-    return UPDATE_SELECTION
+    for match in matches:
+        target_id = match.get("Telegram ID")
+        if target_id:
+            try:
+                await context.bot.send_message(
+                    chat_id=target_id,
+                    text=f"\U0001F514 Someone is enquiring about your car plate {match['Car Plate']}."
+                )
+            except Exception as e:
+                logger.error(f"Failed to message {target_id}: {e}")
 
-async def choose_update_field(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    selected_plate = update.message.text.upper()
-    context.user_data['selected_plate'] = selected_plate
-    await update.message.reply_text(
-        """Choose what you would like to update:
-Name, Phone Number, Vehicle Type, Car Plate
-Or type DELETE to remove this vehicle."""
-    )
-    return UPDATE_FIELD
+    await update.message.reply_text("✉️ Owner has been contacted.")
 
-async def receive_update_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    field = update.message.text
-    telegram_id = update.effective_user.id
-    plate = context.user_data['selected_plate']
-    if field.upper() == "DELETE":
-        delete_vehicle(telegram_id, plate)
-        await update.message.reply_text("❌ Vehicle deleted.")
-        return ConversationHandler.END
-    context.user_data['field_to_update'] = field
-    await update.message.reply_text(f"Enter new value for {field}:")
-    return NEW_VALUE
-
-async def apply_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    new_value = update.message.text
-    telegram_id = update.effective_user.id
-    plate = context.user_data['selected_plate']
-    field = context.user_data['field_to_update']
-    updated = update_user_info(telegram_id, plate, field, new_value)
-    if updated:
-        await update.message.reply_text("✅ Update successful.")
-    else:
-        await update.message.reply_text("❌ Update failed.")
-    return ConversationHandler.END
-
-# Setup application
 def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    reg_conv = ConversationHandler(
-        entry_points=[CommandHandler("register", start_registration)],
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('register', start)],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             MODEL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_model)],
             PLATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_plate)],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[CommandHandler('cancel', cancel)],
     )
 
-    update_conv = ConversationHandler(
-        entry_points=[CommandHandler("update", start_update)],
-        states={
-            UPDATE_SELECTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, choose_update_field)],
-            UPDATE_FIELD: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_update_value)],
-            NEW_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, apply_update)],
-        },
-        fallbacks=[CommandHandler("cancel", cancel)],
-    )
+    application.add_handler(conv_handler)
+    application.add_handler(CommandHandler('start', start_command))
+    application.add_handler(CommandHandler('help', help_command))
+    application.add_handler(CommandHandler('my_status', my_status))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_plate_lookup))
 
-    app.add_handler(reg_conv)
-    app.add_handler(update_conv)
-    app.add_handler(CommandHandler("start", start_command))
-    app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CommandHandler("cancel", cancel))
-    app.add_handler(CommandHandler("my_status", my_status))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_plate_lookup))
-
-    app.run_webhook(
+    application.run_webhook(
         listen="0.0.0.0",
         port=10000,
         url_path="webhook",
