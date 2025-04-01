@@ -329,7 +329,6 @@ reply_conv = ConversationHandler(
     },
     fallbacks=[CommandHandler("cancel", cancel)],
 )
-
     app.add_handler(reg_conv)
     app.add_handler(update_conv)
     app.add_handler(reply_conv)
