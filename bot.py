@@ -27,34 +27,23 @@ conversations = {}
 # Start command
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 Welcome to EV Charging Assistant!
-"
-        "Use /register to register your vehicle.
-"
-        "Use /my_status to view your vehicles.
-"
-        "Use /update to update or delete a vehicle.
-"
-        "Use /cancel to exit at any time."
+        "👋 Welcome to EV Charging Assistant!\n"
+        "Use /register to register your vehicle.\n"
+        "Use /my_status to view your vehicles.\n"
+        "Use /update to update or delete a vehicle.\n"
+        "Use /cancel to exit at any time.\n"
     )
 
 # Help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📋 Commands:
-"
-        "/register – Register your vehicle step-by-step.
-"
-        "/my_status – View your registered vehicles.
-"
-        "/update – Modify or delete your vehicle details.
-"
-        "/reply – Reply to a requester (if any).
-"
-        "/end – End a current conversation.
-"
-        "/cancel – Cancel the current action.
-"
+        "📋 Commands:\n"
+        "/register – Register your vehicle step-by-step.\n"
+        "/my_status – View your registered vehicles.\n"
+        "/update – Modify or delete your vehicle details.\n"
+        "/reply – Reply to a requester (if any).\n"
+        "/end – End a current conversation.\n"
+        "/cancel – Cancel the current action.\n"
         "Just type a car plate to check for registered owners."
     )
 
@@ -107,8 +96,7 @@ async def get_plate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         register_user(name, phone, model, plate, user_id)
         await update.message.reply_text(
-            f"🎉 You are now registered!
-"
+            f"🎉 You are now registered!\n"
             f"Name: {name}
 Phone: {phone}
 Model: {model}
@@ -126,11 +114,9 @@ async def my_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not vehicles:
         await update.message.reply_text("No vehicles registered. Use /register to add one.")
         return
-    msg = "🚗 Your registered vehicles:
-"
+    msg = "🚗 Your registered vehicles:\n"
     for v in vehicles:
-        msg += f"- {v['Car Plate']} ({v['Vehicle Type']})
-"
+        msg += f"- {v['Car Plate']} ({v['Vehicle Type']})\n"
     await update.message.reply_text(msg)
 
 # Plate lookup
@@ -154,8 +140,7 @@ async def handle_plate_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE
         await context.bot.send_message(
             chat_id=owner_id,
             text=(
-                f"🔔 Someone is enquiring about your car plate {match['Car Plate']}.
-"
+                f"🔔 Someone is enquiring about your car plate {match['Car Plate']}.\n"
                 f"Use /reply to respond. You can end the chat anytime with /end."
             )
         )
